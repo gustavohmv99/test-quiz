@@ -2,6 +2,16 @@ import pytest
 from model import Question
 
 
+@pytest.fixture
+def question_with_multiple_choices():
+    question = Question(title='q1', max_selections=2)
+    first = question.add_choice('a')
+    second = question.add_choice('b')
+    third = question.add_choice('c')
+    question.set_correct_choices([first.id, third.id])
+    return question, first, second, third
+
+
 def test_create_question():
     question = Question(title='q1')
     assert question.id != None
@@ -128,3 +138,21 @@ def test_correct_selected_choices_raises_when_selection_exceeds_limit():
 
     with pytest.raises(Exception, match='Cannot select more than 1 choices'):
         question.correct_selected_choices([first.id, second.id])
+
+
+def test_fixture_correct_selected_choices_returns_only_correct_ids(question_with_multiple_choices):
+    question, first, second, _ = question_with_multiple_choices
+
+    corrected = question.correct_selected_choices([first.id, second.id])
+
+    assert corrected == [first.id]
+
+
+def test_fixture_remove_choice_by_id_updates_remaining_ids(question_with_multiple_choices):
+    question, first, _, third = question_with_multiple_choices
+
+    question.remove_choice_by_id(first.id)
+
+    remaining_ids = [choice.id for choice in question.choices]
+    assert remaining_ids == [2, 3]
+    assert third.id in remaining_ids
